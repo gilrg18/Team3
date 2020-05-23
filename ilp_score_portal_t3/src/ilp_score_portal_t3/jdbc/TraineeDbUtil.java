@@ -21,7 +21,7 @@ public class TraineeDbUtil {
 		dataSource = theDataSource;
 	}
 	
-	public ArrayList<Trainee> getTrainees() throws Exception{
+	/*public ArrayList<Trainee> getTrainees() throws Exception{
 		ArrayList<Trainee> trainees = new ArrayList<>();
 		Connection myConn = null;
 		Statement myStmt = null;
@@ -42,7 +42,7 @@ public class TraineeDbUtil {
 				String firstName = myRs.getString("name");
 				String lastName = myRs.getString("last_name");
 				int score = myRs.getInt("score");
-				//create new student object
+				//create new trainee object
 				Trainee tempTrainee = new Trainee(trainee_id, batch_id, firstName, lastName, score);
 				//add it to the list of trainees
 				trainees.add(tempTrainee);
@@ -54,9 +54,9 @@ public class TraineeDbUtil {
 			close(myConn,myStmt,myRs);
 		}
 		
-	}
+	}*/
 	
-	public ArrayList<Trainee> getLowTrainees(String theSearchBatch) throws Exception{
+	public ArrayList<Trainee> getLowTrainees(String theSearchBatch, int pageNumber) throws Exception{
 		 ArrayList<Trainee> trainees = new ArrayList<>();
 	        
 	        Connection myConn = null;
@@ -67,9 +67,12 @@ public class TraineeDbUtil {
 	            
 	            // get connection to database
 	            myConn = dataSource.getConnection();
-
+	            	int start = (pageNumber - 1) * WebConstants.PAGE_SIZE; 
+				
+				// create sql statement
+				
 	            	String sql= "select trainee_id, batch.location as batch_id, name, last_name, score from trainees inner join batch where trainees.batch_id = batch.batch_id\r\n" + 
-	                		"and trainees.score<60 and batch.location like ? order by trainee_id";
+	                		"and trainees.score<60 and batch.location like ? order by trainee_id LIMIT " + start + ", " + WebConstants.PAGE_SIZE;
 	            	// create prepared statement
 	                myStmt = myConn.prepareStatement(sql);
 	                // set params
@@ -90,7 +93,7 @@ public class TraineeDbUtil {
 	                String lastName = myRs.getString("last_name");
 	                int score = myRs.getInt("score");
 	                
-	                // create new student object
+	                // create new trainee object
 	                Trainee tempTrainee = new Trainee(trainee_id, batch_id, firstName, lastName, score);
 	                
 	                // add it to the list of trainees
@@ -139,7 +142,7 @@ public class TraineeDbUtil {
 	                String lastName = myRs.getString("last_name");
 	                int score = myRs.getInt("score");
 	                
-	                // create new student object
+	                // create new trainee object
 	                Trainee tempTrainee = new Trainee(trainee_id, batch_id, firstName, lastName, score);
 	                
 	                // add it to the list of trainees
@@ -165,7 +168,7 @@ public class TraineeDbUtil {
 		  }  
 	}
 	
-    public ArrayList<Trainee> searchTrainee(String theSearchID)  throws Exception {
+    public ArrayList<Trainee> searchTrainee(String theSearchID,int pageNumber)  throws Exception {
         ArrayList<Trainee> trainees = new ArrayList<>();
         
         Connection myConn = null;
@@ -188,16 +191,18 @@ public class TraineeDbUtil {
                 
                 myStmt.setInt(1, search);
                 
-            }
+            
             //
             // only search by name if theSearchName is not empty
             //
-            else {
+         /*   else {
                 // create sql to get all trainees
-                String sql = "select * from trainees order by trainee_id limit 10";
+                //String sql = "select * from trainees order by trainee_id limit 10";
+            	JOptionPane.showMessageDialog(null,"Invalid search id");
+            	
                 // create prepared statement
-                myStmt = myConn.prepareStatement(sql);
-            }
+                //myStmt = myConn.prepareStatement(sql);
+            }*/
             
             // execute statement
             myRs = myStmt.executeQuery();
@@ -212,18 +217,24 @@ public class TraineeDbUtil {
                 String lastName = myRs.getString("last_name");
                 int score = myRs.getInt("score");
                 
-                // create new student object
+                // create new trainee object
                 Trainee tempTrainee = new Trainee(trainee_id, batch_id, firstName, lastName, score);
                 
                 // add it to the list of trainees
                 trainees.add(tempTrainee);            
             }
-            
+            close(myConn, myStmt, myRs);
             return trainees;
+            }else {
+            	close(myConn, myStmt, myRs);
+            	JOptionPane.showMessageDialog(null,"Invalid search id");
+            	return getTrainees(pageNumber);
+            }
+            
         }
         finally {
             // clean up JDBC objects
-            close(myConn, myStmt, myRs);
+            
         }
     }
 	
@@ -261,7 +272,7 @@ public class TraineeDbUtil {
                 String lastName = myRs.getString("last_name");
                 int score = myRs.getInt("score");
                 
-                // create new student object
+                // create new trainee object
                 Trainee tempTrainee = new Trainee(trainee_id, batch_id, firstName, lastName, score);
                 
                 // add it to the list of trainees
@@ -285,11 +296,11 @@ public class TraineeDbUtil {
 		int traineeId;
 		
 		try {
-			//convert student id to int
+			//convert trainee id to int
 			traineeId = Integer.parseInt(theTraineeId);
 			//get connection to database
 			myConn = dataSource.getConnection();
-			//create a sql to get selected student
+			//create a sql to get selected trainee
 			String sql = "select * from trainees where trainee_id =?";
 			//create prepared statement
 			myStmt = myConn.prepareStatement(sql);
@@ -305,7 +316,7 @@ public class TraineeDbUtil {
 				String firstName = myRs.getString("name");
 				String lastName = myRs.getString("last_name");
 				int score = myRs.getInt("score");
-				//use the studentId during construction
+				//use the traineeid during construction
 				theTrainee = new Trainee(trainee_id,firstName,lastName,score);
 			}else {
 				throw new Exception("Could not find trainee id: "+ traineeId);
@@ -348,6 +359,138 @@ public class TraineeDbUtil {
 
 	}
     
+	//<PAGINATION
+	//for TraineeControllerServlet.listTrainees
+	public ArrayList<Trainee> getTrainees(int pageNumber) throws Exception {
+		
+		ArrayList<Trainee> trainees = new ArrayList<>();
+		
+		Connection myConn = null;
+		Statement myStmt = null;
+		ResultSet myRs = null;
+		
+		try {
+			// get a connection
+			myConn = dataSource.getConnection();
+			
+			int start = (pageNumber - 1) * WebConstants.PAGE_SIZE; 
+			
+			// create sql statement
+			String sql = "select * from trainees order by trainee_id LIMIT " + start + ", " + WebConstants.PAGE_SIZE;
+			
+			myStmt = myConn.createStatement();
+			
+			// execute query
+			myRs = myStmt.executeQuery(sql);
+			
+			// process result set
+			while (myRs.next()) {
+				
+				// retrieve data from result set row
+				int id = myRs.getInt("trainee_id");
+				String batch = myRs.getString("batch_id");
+				String firstName = myRs.getString("name");
+				String lastName = myRs.getString("last_name");
+				int score = myRs.getInt("score");
+				
+				// create new trainee object
+				Trainee tempTrainee = new Trainee(id, batch, firstName, lastName, score);
+				
+				// add it to the list of students
+				trainees.add(tempTrainee);				
+			}
+			
+			return trainees;		
+		}
+		finally {
+			// close JDBC objects
+			close(myConn, myStmt, myRs);
+		}		
+	}
+	
+	
+	public long getTraineesTotalCount() throws Exception {
+
+		Connection myConn = null;
+		PreparedStatement myStmt = null;
+		ResultSet myRs = null;
+		
+		try {			
+			// get connection to database
+			myConn = dataSource.getConnection();
+			
+			// create sql to get selected trainee
+			String sql = "select count(1) from trainees";
+			
+			// create prepared statement
+			myStmt = myConn.prepareStatement(sql);
+						
+			// execute statement
+			myRs = myStmt.executeQuery();
+			
+			long count = 0;
+			
+			// retrieve data from result set row
+			if (myRs.next()) {
+				count = myRs.getLong(1);
+			}
+			else {
+				throw new Exception("Could not count trainees");
+			}				
+			System.out.println("Total trainees: "+count);
+			return count;
+		}
+		finally {
+			// clean up JDBC objects
+			close(myConn, myStmt, myRs);
+		}		
+	}
+	
+	public long getBatchTotalCount(String theSearchBatch) throws Exception {
+
+		Connection myConn = null;
+		PreparedStatement myStmt = null;
+		ResultSet myRs = null;
+		
+		try {			
+			// get connection to database
+			myConn = dataSource.getConnection();
+			
+			// create sql to get selected trainee
+			String sql = "select count(1) trainee_id, batch.location as batch_id, name, last_name, score from trainees inner join batch where trainees.batch_id = batch.batch_id\r\n" + 
+            		"and trainees.score<60 and batch.location like ?";
+			
+			// create prepared statement
+			myStmt = myConn.prepareStatement(sql);
+			String theSearchNameLike = "%" + theSearchBatch.toLowerCase() + "%";
+            myStmt.setString(1, theSearchNameLike);			
+			// execute statement
+			myRs = myStmt.executeQuery();
+			
+            
+			long count = 0;
+			
+			// retrieve data from result set row
+			if (myRs.next()) {
+				count = myRs.getLong(1);
+			}
+			else {
+				throw new Exception("Could not count trainees");
+			}
+			
+			
+			System.out.println("Found count: "+count);
+			return count;
+		}
+		finally {
+			// clean up JDBC objects
+			close(myConn, myStmt, myRs);
+		}		
+	}
+	
+	
+	
+	//PAGINATION>
 	
 	private void close(Connection myConn, Statement myStmt, ResultSet myRs) {
 		try {

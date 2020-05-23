@@ -71,7 +71,7 @@ public class TraineeControllerServlet extends HttpServlet {
                 searchBatch(request, response);
                 break;
 			default:
-				listTrainees(request,response);
+				//listTrainees(request,response);
 			}
 			
 
@@ -84,8 +84,25 @@ public class TraineeControllerServlet extends HttpServlet {
 	
 	private void listTrainees(HttpServletRequest request, HttpServletResponse response) 
 	throws Exception{
+		int pageNumber = getPageNumber(request);
+
+		// computer pagination values
+		long totalTraineeCount = traineeDbUtil.getTraineesTotalCount();
+
+		int totalPages = (int) Math.floor(totalTraineeCount / WebConstants.PAGE_SIZE);
+		
+		if ( (totalTraineeCount % WebConstants.PAGE_SIZE) > 0) {
+			totalPages++;
+		}
+		
+		// add data for pagination support
+		request.setAttribute("totalTraineeCount", totalTraineeCount);
+		request.setAttribute("currentPage", pageNumber);
+		request.setAttribute("totalPages", totalPages);
+		request.setAttribute("pageSize", WebConstants.PAGE_SIZE);
+		
 		//get trainees from db util
-		ArrayList<Trainee> trainees = traineeDbUtil.getTrainees();
+		ArrayList<Trainee> trainees = traineeDbUtil.getTrainees(pageNumber);
 		//add trainees to the request
 		request.setAttribute("TRAINEE_LIST", trainees);
 		//send to JSP page(view)
@@ -93,12 +110,50 @@ public class TraineeControllerServlet extends HttpServlet {
 		dispatcher.forward(request, response);
 		
 	}
-	
+//<PAGINATION	
+	private int getPageNumber(HttpServletRequest request) {
+		
+		String pageNumberStr = request.getParameter("pageNumber");
+		
+		int pageNumber;
+		
+		if (pageNumberStr != null) {
+			pageNumber = Integer.parseInt(pageNumberStr);
+			
+			if (pageNumber < 1) {
+				pageNumber = 1;
+			}
+		}
+		else {
+			pageNumber = 1;
+		}
+		return pageNumber;
+	}
+//PAGINATION>
+
 	private void listLowTrainees(HttpServletRequest request, HttpServletResponse response) 
 	throws Exception{
 		String theSearchBatch = request.getParameter("theSearchBatch");
+		int pageNumber = getPageNumber(request);
+
+		// computer pagination values
+		long totalTraineeCount = traineeDbUtil.getBatchTotalCount(theSearchBatch);
+
+		int totalPages = (int) Math.floor(totalTraineeCount / WebConstants.PAGE_SIZE);
+		
+		if ( (totalTraineeCount % WebConstants.PAGE_SIZE) > 0) {
+			totalPages++;
+		}
+		
+		// add data for pagination support
+		request.setAttribute("totalTraineeCount", totalTraineeCount);
+		request.setAttribute("currentPage", pageNumber);
+		request.setAttribute("totalPages", totalPages);
+		request.setAttribute("pageSize", WebConstants.PAGE_SIZE);
+		
+		
 		//get trainees from db util
-		ArrayList<Trainee> trainees = traineeDbUtil.getLowTrainees(theSearchBatch);
+		ArrayList<Trainee> trainees = traineeDbUtil.getLowTrainees(theSearchBatch, pageNumber);
 		//add trainees to the request
 		request.setAttribute("TRAINEE_LIST", trainees);
 		//send to JSP page(view)
@@ -151,11 +206,26 @@ public class TraineeControllerServlet extends HttpServlet {
 	
 	
     private void searchTrainees(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        // read search name from form data
+     
+    	
+    	// read search name from form data
         String theSearchID = request.getParameter("theSearchID");
+        int pageNumber = getPageNumber(request);
+	     
+        long totalTraineeCount = traineeDbUtil.getTraineesTotalCount();
+	
+		int totalPages = (int) Math.floor(totalTraineeCount / WebConstants.PAGE_SIZE);
+			
+		if ( (totalTraineeCount % WebConstants.PAGE_SIZE) > 0) {
+			totalPages++;
+		}
+		request.setAttribute("totalTraineeCount", totalTraineeCount);
+		request.setAttribute("currentPage", pageNumber);
+		request.setAttribute("totalPages", totalPages);
+		request.setAttribute("pageSize", WebConstants.PAGE_SIZE);
         
         // search trainees from db util
-        ArrayList<Trainee> trainees = traineeDbUtil.searchTrainee(theSearchID);
+        ArrayList<Trainee> trainees = traineeDbUtil.searchTrainee(theSearchID, pageNumber);
         
         // add trainees to the request
         request.setAttribute("TRAINEE_LIST", trainees);
@@ -163,6 +233,7 @@ public class TraineeControllerServlet extends HttpServlet {
         // send to JSP page (view)
         RequestDispatcher dispatcher = request.getRequestDispatcher("/list-trainees.jsp");
         dispatcher.forward(request, response);
+ 
     }
     
     private void searchBatch(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -179,5 +250,7 @@ public class TraineeControllerServlet extends HttpServlet {
         RequestDispatcher dispatcher = request.getRequestDispatcher("/list-trainees.jsp");
         dispatcher.forward(request, response);
     }
+    
+
 	
 }
